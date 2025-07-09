@@ -1,0 +1,12 @@
+[project]
+name = "database-analytics-mcp"
+version = "0.1.0"
+description = "Database Analytics MCP Server built with FastMCP"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.0.0",
+]
+
+[tool.uv]
+dev-dependencies = []
