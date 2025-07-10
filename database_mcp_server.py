@@ -20,21 +20,10 @@ db_path = None
 
 
 def _is_safe_query(sql: str) -> bool:
-    """Check if a SQL query is safe to execute."""
+    """Check if a SQL query is safe to execute. Only SELECT queries are allowed."""
     sql_lower = sql.lower().strip()
-    
-    # List of dangerous operations to block
-    dangerous_operations = [
-        "drop", "delete", "truncate", "alter", "insert", "update",
-        "create", "replace", "merge", "grant", "revoke"
-    ]
-    
-    # Check if query starts with any dangerous operation
-    for operation in dangerous_operations:
-        if sql_lower.startswith(operation):
-            return False
-    
-    return True
+    return sql_lower.startswith("select")
+
 
 # Initialize FastMCP server
 mcp = FastMCP(
@@ -72,21 +61,14 @@ def execute_query(sql: str, ctx: Context = None) -> Dict[str, Any]:
     if not _is_safe_query(sql):
         return {
             "success": False,
-            "error": "Potentially dangerous SQL operations are not allowed. Only SELECT queries are permitted."
+            "error": "Potentially dangerous SQL operations are not allowed. Only SELECT queries are permitted.",
         }
 
     with db_session_factory() as session:
         # Execute the SQL query
         result = session.execute(text(sql))
-
-        # Handle SELECT queries - return data
-        if sql.lower().strip().startswith("select"):
-            rows = result.fetchall()
-            return {"success": True, "results": [dict(row._mapping) for row in rows]}
-        # Handle non-SELECT queries - commit changes
-        else:
-            session.commit()
-            return {"success": True, "rows_affected": result.rowcount}
+        rows = result.fetchall()
+        return {"success": True, "results": [dict(row._mapping) for row in rows]}
 
 
 @mcp.tool
