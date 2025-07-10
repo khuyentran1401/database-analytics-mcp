@@ -8,103 +8,8 @@ with the database analytics server.
 
 import asyncio
 from pathlib import Path
-from sqlalchemy import create_engine, text, Integer, String, DECIMAL, TIMESTAMP
-from sqlalchemy.orm import sessionmaker
 from fastmcp import Client
-
-
-def create_sample_database():
-    """Create a sample SQLite database for testing."""
-    db_path = "sample_database.db"
-
-    # Remove existing database
-    if Path(db_path).exists():
-        Path(db_path).unlink()
-
-    # Create new database with sample data
-    engine = create_engine(f"sqlite:///{db_path}")
-    Session = sessionmaker(bind=engine)
-
-    with Session() as session:
-        # Create users table
-        session.execute(
-            text("""
-            CREATE TABLE users (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                age INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        )
-
-        # Create orders table
-        session.execute(
-            text("""
-            CREATE TABLE orders (
-                id INTEGER PRIMARY KEY,
-                user_id INTEGER,
-                product_name TEXT NOT NULL,
-                quantity INTEGER DEFAULT 1,
-                price DECIMAL(10,2),
-                order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        """)
-        )
-
-        # Insert sample data
-        users_data = [
-            (1, "Alice Johnson", "alice@example.com", 28),
-            (2, "Bob Smith", "bob@example.com", 35),
-            (3, "Charlie Brown", "charlie@example.com", 22),
-            (4, "Diana Prince", "diana@example.com", 30),
-            (5, "Edward Davis", "edward@example.com", 45),
-        ]
-
-        for user_data in users_data:
-            session.execute(
-                text(
-                    "INSERT INTO users (id, name, email, age) VALUES (:id, :name, :email, :age)"
-                ),
-                {
-                    "id": user_data[0],
-                    "name": user_data[1],
-                    "email": user_data[2],
-                    "age": user_data[3],
-                },
-            )
-
-        orders_data = [
-            (1, 1, "Laptop", 1, 999.99),
-            (2, 1, "Mouse", 2, 29.99),
-            (3, 2, "Keyboard", 1, 79.99),
-            (4, 3, "Monitor", 1, 299.99),
-            (5, 3, "Webcam", 1, 89.99),
-            (6, 4, "Headphones", 1, 149.99),
-            (7, 5, "Tablet", 1, 499.99),
-            (8, 5, "Charger", 3, 24.99),
-        ]
-
-        for order_data in orders_data:
-            session.execute(
-                text(
-                    "INSERT INTO orders (id, user_id, product_name, quantity, price) VALUES (:id, :user_id, :product_name, :quantity, :price)"
-                ),
-                {
-                    "id": order_data[0],
-                    "user_id": order_data[1],
-                    "product_name": order_data[2],
-                    "quantity": order_data[3],
-                    "price": order_data[4],
-                },
-            )
-
-        session.commit()
-
-    print(f"Created sample database: {db_path}")
-    return db_path
+from setup_database import create_sample_database
 
 
 async def demonstrate_mcp_server(db_path: str, cleanup: bool = True):
@@ -192,10 +97,15 @@ if __name__ == "__main__":
     print("=" * 50)
 
     async def main():
-        # Create sample database
-        db_path = create_sample_database()
+        # Check if database exists, create if it doesn't
+        db_path = "ecommerce.db"
+        if not Path(db_path).exists():
+            print(f"Database {db_path} not found. Creating it...")
+            create_sample_database(db_path)
+        else:
+            print(f"Using existing database: {db_path}")
 
-        # Demonstrate MCP server with the created database
+        # Demonstrate MCP server with the database
         await demonstrate_mcp_server(db_path, cleanup=False)
 
     asyncio.run(main())
