@@ -6,7 +6,7 @@ This server provides basic database analytics capabilities using SQLite,
 showcasing FastMCP's core features: tools, resources, and context.
 """
 
-import csv
+import pandas as pd
 from typing import Dict, Any
 from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.engine import Engine
@@ -85,25 +85,15 @@ def list_tables() -> Dict[str, Any]:
 
 
 @mcp.tool
-def export_to_csv(sql: str, filename: str, ctx: Context = None) -> Dict[str, Any]:
-    """Execute a SQL query and export results to CSV file."""
-    global db_session_factory
+def export_to_csv(sql: str, filename: str) -> dict:
+    """Execute a SQL query and export results to CSV file"""
+    global db_engine
 
-    with db_session_factory() as session:
-        # Execute query and get results
-        result = session.execute(text(sql))
-        rows = result.fetchall()
-        columns = list(result.keys())
+    # Execute query and export to CSV using pandas
+    df = pd.read_sql(sql, db_engine)
+    df.to_csv(filename, index=False)
 
-        # Write results to CSV file
-        with open(filename, "w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(columns)
-
-            for row in rows:
-                writer.writerow(row)
-
-    return {"success": True, "filename": filename}
+    return {"success": True, "filename": filename, "rows_exported": len(df)}
 
 
 # Resources - Read-only data access
