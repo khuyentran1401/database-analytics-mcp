@@ -6,21 +6,35 @@ This server provides basic database analytics capabilities using SQLite,
 showcasing FastMCP's core features: tools, resources, and context.
 """
 
-import json
 import csv
-import time
-from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, Any
 from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import sessionmaker
 from fastmcp import FastMCP, Context
 
 # Global database connection
 db_engine: Engine = None
 db_session_factory = None
 db_path = None
+
+
+def _is_safe_query(sql: str) -> bool:
+    """Check if a SQL query is safe to execute."""
+    sql_lower = sql.lower().strip()
+    
+    # List of dangerous operations to block
+    dangerous_operations = [
+        "drop", "delete", "truncate", "alter", "insert", "update",
+        "create", "replace", "merge", "grant", "revoke"
+    ]
+    
+    # Check if query starts with any dangerous operation
+    for operation in dangerous_operations:
+        if sql_lower.startswith(operation):
+            return False
+    
+    return True
 
 # Initialize FastMCP server
 mcp = FastMCP(
@@ -54,10 +68,17 @@ def execute_query(sql: str, ctx: Context = None) -> Dict[str, Any]:
     """Execute a SQL query on the connected database."""
     global db_session_factory
 
+    # Check if query is safe before execution
+    if not _is_safe_query(sql):
+        return {
+            "success": False,
+            "error": "Potentially dangerous SQL operations are not allowed. Only SELECT queries are permitted."
+        }
+
     with db_session_factory() as session:
         # Execute the SQL query
         result = session.execute(text(sql))
-        
+
         # Handle SELECT queries - return data
         if sql.lower().strip().startswith("select"):
             rows = result.fetchall()
@@ -77,7 +98,7 @@ def list_tables() -> Dict[str, Any]:
     inspector = inspect(db_engine)
     # Get all table names
     table_names = inspector.get_table_names()
-    
+
     return {"success": True, "tables": table_names}
 
 
@@ -96,7 +117,7 @@ def export_to_csv(sql: str, filename: str, ctx: Context = None) -> Dict[str, Any
         with open(filename, "w", newline="", encoding="utf-8") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(columns)
-            
+
             for row in rows:
                 writer.writerow(row)
 
@@ -113,18 +134,20 @@ def get_table_schema(table_name: str) -> Dict[str, Any]:
 
     # Get database inspector
     inspector = inspect(db_engine)
-    
+
     # Get column information
     columns = inspector.get_columns(table_name)
-    
+
     # Build column info list
     column_info = []
     for col in columns:
-        column_info.append({
-            "name": col["name"],
-            "type": str(col["type"]),
-            "nullable": col["nullable"],
-        })
+        column_info.append(
+            {
+                "name": col["name"],
+                "type": str(col["type"]),
+                "nullable": col["nullable"],
+            }
+        )
 
     return {"table_name": table_name, "columns": column_info}
 
@@ -136,8 +159,10 @@ def get_table_data(table_name: str, limit: int = 10, offset: int = 0) -> Dict[st
 
     with db_session_factory() as session:
         # Get sample data with pagination
-        result = session.execute(text(f"SELECT * FROM {table_name} LIMIT :limit OFFSET :offset"), 
-                               {"limit": limit, "offset": offset})
+        result = session.execute(
+            text(f"SELECT * FROM {table_name} LIMIT :limit OFFSET :offset"),
+            {"limit": limit, "offset": offset},
+        )
         rows = result.fetchall()
 
         # Convert to dict
@@ -153,13 +178,19 @@ def get_table_stats(table_name: str) -> Dict[str, Any]:
 
     with db_session_factory() as session:
         # Get basic table statistics
-        total_rows = session.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
-        
+        total_rows = session.execute(
+            text(f"SELECT COUNT(*) FROM {table_name}")
+        ).scalar()
+
     # Get column information
     inspector = inspect(db_engine)
     columns = inspector.get_columns(table_name)
-    
-    return {"table_name": table_name, "total_rows": total_rows, "column_count": len(columns)}
+
+    return {
+        "table_name": table_name,
+        "total_rows": total_rows,
+        "column_count": len(columns),
+    }
 
 
 # Main execution

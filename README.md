@@ -23,27 +23,34 @@ A practical database analytics MCP server built with FastMCP, providing SQLite d
 
 ## Setup and Installation
 
-1. **Install UV (recommended):**
+1. **Clone the repository:**
+
+   ```bash
+   git clone https://github.com/khuyentran1401/database-analytics-mcp.git
+   cd database-analytics-mcp
+   ```
+
+2. **Install UV (recommended):**
 
    ```bash
    # Install UV if you haven't already
    curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
-2. **Install dependencies:**
+3. **Install dependencies:**
 
    ```bash
    # UV automatically manages dependencies from pyproject.toml
    uv sync
    ```
 
-3. **Test the server:**
+4. **Test the server:**
 
    ```bash
    uv run example_usage.py
    ```
 
-4. **Add to Claude Code (optional):**
+5. **Add to Claude Code**
 
    ```bash
    # Quick setup
@@ -56,38 +63,7 @@ A practical database analytics MCP server built with FastMCP, providing SQLite d
    claude mcp list
    ```
 
-## Using with Claude Code
-
-### Quick Setup (Recommended)
-
-The easiest way to add the server to Claude Code is using the command line:
-
-```bash
-# Navigate to the project directory
-cd /path/to/fastmcp_examples
-
-# Add the server to Claude Code
-claude mcp add database-analytics -- uv run database_mcp_server.py
-```
-
-### Manual Configuration (Alternative)
-
-You can also manually add the server to your Claude Code MCP configuration:
-
-```json
-{
-  "mcpServers": {
-    "database-analytics": {
-      "command": "uv",
-      "args": ["run", "database_mcp_server.py"],
-      "cwd": "/path/to/fastmcp_examples"
-    }
-  }
-}
-```
-
-
-### Generic MCP Client Configuration
+## Other MCP Clients
 
 For any MCP client that supports the standard protocol:
 
