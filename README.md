@@ -150,4 +150,3 @@ servers:
 | `schema://tables/{table_name}` | Get column info, types, constraints, foreign keys |
 | `data://tables/{table_name}` | Get sample rows with pagination, statistics (limit, offset) |
 | `stats://tables/{table_name}` | Get comprehensive table statistics and column analysis |
-
